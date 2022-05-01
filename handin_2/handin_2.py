@@ -1,6 +1,5 @@
 import math
 import os
-import numpy as np
 from operator import attrgetter
 
 class Node:
@@ -23,6 +22,7 @@ def char_counter(file):
 
     #Sort in descending probability
     counts = {k:v for k, v in sorted(counts.items(), key=lambda item: item[1], reverse=True)}
+    #print(counts)
     for key in counts:
         counts[key] /= total_chars
 
@@ -40,6 +40,7 @@ def print_tree(node, level=0, counter=0):
 
 def code_tree(probs: list):
 
+    katt = False
     if len(probs) < 2:
         return probs.pop()
         
@@ -48,20 +49,22 @@ def code_tree(probs: list):
     node = Node((prob_0.value[0] + prob_1.value[0], prob_0.value[1] + prob_1.value[1]))
     node.right, node.left = (prob_1, prob_0) if prob_1.value[1] > prob_0.value[1] else (prob_0, prob_1)
 
-    if prob_1.value[0] == "X":
-        print("Här finns X!!")
-
     length = len(probs)
 
     #Insert new node in the right place
     if length > 0:
         for index, item in enumerate(probs):
+            if katt:
+                print("item = {}, value = {}".format(item.value[1], node.value[1]))
             if item.value[1] < node.value[1]:
                 if index == length - 1:
                     probs.append(node)
                     break
                 probs.insert(index, node)
                 break
+            if index == length - 1:
+                    probs.append(node)
+            
     else:
         probs.append(node)
     
@@ -101,21 +104,45 @@ if __name__ == '__main__':
 
     with open(os.path.join(os.sys.path[0], "Alice29.txt"), "r") as file:
         counts = char_counter(file)
-    print("Length of counts = ", len(counts))
-    print([item for item in counts])
+    #print("Length of counts = ", len(counts))
     root = code_tree([Node(val) for val in list(counts.items())])
 
     mapping = {}
     assign_codes(root, mapping)
-    print("Length of mapping = ", len(mapping))
+
+    sorted_map = sorted(mapping.items(), key=lambda item: item[0])
+    sorted_counts = sorted(counts.items(), key=lambda item: item[0])
+    
+    print("\nDistribution of letters: \n")
+    for entry in sorted_counts:
+        print("Character: \"{}\", probability: {}".format(entry[0], entry[1]))
 
     coded_text = ""
+    counter = 0
     with open(os.path.join(os.sys.path[0], "Alice29.txt"), "r") as file:
         for line in file:
             for char in line:
+                counter += 1
                 if char in mapping.keys():
                     coded_text += mapping[char]
                 else:
                     print("Missing mapping: ", char)
-    print(print_leaves(root))
-    print("Length of the coded text = ",len(coded_text))
+
+    print("\nCode table: \n")
+    for entry in sorted_map:
+        print("Character: \"{}\", code: {}".format(entry[0], entry[1]))
+    
+    print("\nLength of the uncoded text = ", counter*8)
+    print("Length of the coded text = ", len(coded_text))
+
+    entropy_uncoded = Entropy([prob for prob in list(counts.values())])
+    print("Entropy of text file = ", entropy_uncoded)
+ 
+    average_code_len = 0
+    for index, e in enumerate(list(map(len, [i[1] for i in sorted_map]))):
+        print(sorted_counts[index][1])
+        average_code_len += e*sorted_counts[index][1]
+        
+    print("Average code length = ", average_code_len)
+    #print(coded_text)
+    #print(print_leaves(root))
