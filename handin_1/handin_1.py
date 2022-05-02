@@ -18,7 +18,6 @@ class InfoTheory:
         #   array with entropies
 
         H = []
-        h = 0
         rows, cols = np.shape(P)
         for row in range(rows):
             if cols > 1:
