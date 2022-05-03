@@ -1,6 +1,5 @@
 import math
 import os
-from operator import attrgetter
 
 class Node:
     def __init__(self, value, left=None, right=None):
@@ -30,7 +29,7 @@ def char_counter(file) -> dict:
 
     return counts
 
-def Entropy(P: list):
+def Entropy(P: list) -> float:
             
     return (-1 * sum([x * math.log2(x) if x != 0 else 0 for x in P]))
 
@@ -44,7 +43,7 @@ def print_tree(node, level=0, counter=0) -> None:
 def code_tree(probs: list) -> Node:
 
     #Base case for function (last element must be the root)
-    if len(probs) < 2:
+    if len(probs) == 1:
         return probs.pop()
     
     #pop the two lowest probabilities
@@ -54,8 +53,8 @@ def code_tree(probs: list) -> Node:
     #combine the probabilities for the new node value (as well as the symbols)
     node = Node((prob_0.value[0] + prob_1.value[0], prob_0.value[1] + prob_1.value[1]))
 
-    #assign node.right and left depending on which probability is higher
-    node.right, node.left = (prob_1, prob_0) if prob_1.value[1] >= prob_0.value[1] else (prob_0, prob_1)
+    #assign node.right and left
+    node.right, node.left = (prob_1, prob_0)
 
     length = len(probs)
 
@@ -63,14 +62,8 @@ def code_tree(probs: list) -> Node:
     if length > 0:
         for index, item in enumerate(probs):
             if item.value[1] < node.value[1]:
-                if index == length - 1:
-                    probs.append(node)
-                    break
                 probs.insert(index, node)
                 break
-            if index == length - 1:
-                    probs.append(node)
-            
     else:
         probs.append(node)
     
@@ -90,21 +83,44 @@ def print_leaves(root: Node, counter: int=0) -> int:
     if root.right:
         counter = print_leaves(root.right, counter)
 
-def assign_codes(root: Node, code_map: dict={}, code: str="") -> None:
+def assign_codes(node: Node, code_map: dict={}, code: str="") -> None:
     
-    if not root:
+    #not a node
+    if not node:
         return
 
-    if not root.left and not root.right:
-        code_map[root.value[0]] = code
+    #leaf node
+    if not node.left and not node.right:
+        code_map[node.value[0]] = code
     
-    if root.left:
-        code += "0"
-        assign_codes(root.left, code_map, code)
+    assign_codes(node.left, code_map, code + "0")
+    assign_codes(node.right, code_map, code + "1")
 
-    if root.right:
-        code += "1"
-        assign_codes(root.right, code_map, code,)
+def calc_avg_code_len(node: Node, code_map: dict={}, level: int=0):
+    
+    if not node:
+        return
+
+    if level in code_map:
+        code_map[level] += node.value[1]
+    else:
+        code_map[level] = node.value[1]
+
+    calc_avg_code_len(node.left, code_map, level + 1)
+    calc_avg_code_len(node.right, code_map, level + 1)
+
+    return sum(list(code_map.values()))
+
+def encode_text(coded_text: str="", counter=0) -> tuple:
+
+    with open(os.path.join(os.sys.path[0], "Alice29.txt"), "r") as file:
+        for line in file:
+            for char in line:
+                if char in mapping.keys():
+                    coded_text += mapping[char]
+                    counter += 1
+
+    return coded_text, counter
 
 if __name__ == '__main__':
 
@@ -116,40 +132,26 @@ if __name__ == '__main__':
     mapping = {}
     assign_codes(root, mapping)
 
+    #Sort code mapping and counts for easy comparison (sorted by symbol)
     sorted_map = sorted(mapping.items(), key=lambda item: item[0])
     sorted_counts = sorted(counts.items(), key=lambda item: item[0])
-    
-    print("\nDistribution of letters: ")
-    for entry in sorted_counts:
-        if entry[0] == '\n':
-            print("Character: \"\\n\", probability: {}".format(entry[1]))
-        else:
-            print("Character: \"{}\",  probability: {}".format(entry[0], entry[1]))
 
-    coded_text = ""
-    counter = 0
-    with open(os.path.join(os.sys.path[0], "Alice29.txt"), "r") as file:
-        for line in file:
-            for char in line:
-                counter += 1
-                if char in mapping.keys():
-                    coded_text += mapping[char]
+    coded_text, coded_len = encode_text()
+    coded_len *= 7 #ASCII represent each symbol with 7 bits
 
-    print("\nCode table: ")
-    for entry in sorted_map:
+    print("\nCode table & Distribution of letters: ")
+    for index, entry in enumerate(sorted_map):
         if entry[0] == '\n':
-            print("Character: \"\\n\", code: {}".format(entry[1]))
+            print("Character: \"\\n\" probability: {: <22} {: <5} {}".format(sorted_counts[index][1], "code:", entry[1]))
         else:
-            print("Character: \"{}\",  code: {}".format(entry[0], entry[1]))
+            print("Character: \"{}\"  probability: {: <22} {: <5} {}".format(entry[0], sorted_counts[index][1], "code:", entry[1]))
     
-    print("\nLength of the uncoded text = ", counter*8)
-    print("Length of the coded text = ", len(coded_text))
+    print("\nLength of the uncoded text = ", coded_len)
+    print("Length of the coded text = {}, compression ratio = {:.4f}".format(len(coded_text), (coded_len) / len(coded_text)))
 
     entropy_uncoded = Entropy([prob for prob in list(counts.values())])
     print("Entropy of text file = ", entropy_uncoded)
- 
-    average_code_len = 0
-    for index, e in enumerate(list(map(len, [i[1] for i in sorted_map]))):
-        average_code_len += e*sorted_counts[index][1]
-        
-    print("Average code length = ", average_code_len)
+
+    average_code_len = calc_avg_code_len(root)
+    print("Average code length = {}".format(average_code_len))
+    print("H < avg. code len < H + 1", average_code_len > entropy_uncoded and average_code_len < entropy_uncoded + 1)
