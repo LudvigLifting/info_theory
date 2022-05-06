@@ -64,6 +64,9 @@ def code_tree(probs: list) -> Node:
             if item.value[1] < node.value[1]:
                 probs.insert(index, node)
                 break
+            elif index == len(probs) - 1:
+                probs.append(node)
+                break
     else:
         probs.append(node)
     
@@ -111,7 +114,7 @@ def calc_avg_code_len(node: Node, code_map: dict={}, level: int=0):
 
     return sum(list(code_map.values()))
 
-def encode_text(coded_text: str="", counter=0) -> tuple:
+def encode_text(mapping: dict={}, coded_text: str="", counter=0) -> tuple:
 
     with open(os.path.join(os.sys.path[0], "Alice29.txt"), "r") as file:
         for line in file:
@@ -124,11 +127,14 @@ def encode_text(coded_text: str="", counter=0) -> tuple:
 
 if __name__ == '__main__':
 
+    #Open the text and calculate the probability distribution for each char
     with open(os.path.join(os.sys.path[0], "Alice29.txt"), "r") as file:
         counts = char_counter(file)
     
+    #The root of the binary tree
     root = code_tree([Node(val) for val in list(counts.items())])
 
+    #Assign each symbol a code and store them in mapping
     mapping = {}
     assign_codes(root, mapping)
 
@@ -136,9 +142,12 @@ if __name__ == '__main__':
     sorted_map = sorted(mapping.items(), key=lambda item: item[0])
     sorted_counts = sorted(counts.items(), key=lambda item: item[0])
 
-    coded_text, coded_len = encode_text()
-    coded_len *= 7 #ASCII represent each symbol with 7 bits
+    #Encode the text with the generated codes
+    coded_text, uncoded_len = encode_text(mapping)
+    coded_len = len(coded_text)
+    uncoded_len *= 7 #ASCII represent each symbol with 7 bits
 
+    #Results
     print("\nCode table & Distribution of letters: ")
     for index, entry in enumerate(sorted_map):
         if entry[0] == '\n':
@@ -146,8 +155,8 @@ if __name__ == '__main__':
         else:
             print("Character: \"{}\"  probability: {: <22} {: <5} {}".format(entry[0], sorted_counts[index][1], "code:", entry[1]))
     
-    print("\nLength of the uncoded text = ", coded_len)
-    print("Length of the coded text = {}, compression ratio = {:.4f}".format(len(coded_text), (coded_len) / len(coded_text)))
+    print("\nLength of the uncoded text = ", uncoded_len)
+    print("Length of the coded text = {}, compression ratio = {:.4f}".format(coded_len, uncoded_len / coded_len))
 
     entropy_uncoded = Entropy([prob for prob in list(counts.values())])
     print("Entropy of text file = ", entropy_uncoded)
