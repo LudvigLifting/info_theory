@@ -33,13 +33,6 @@ def Entropy(P: list) -> float:
             
     return (-1 * sum([x * math.log2(x) if x != 0 else 0 for x in P]))
 
-def print_tree(node, level=0, counter=0) -> None:
-    
-    if node != None:
-        print_tree(node.left, level + 1, counter)
-        print(' ' * 4 * level + '-> ' + str(node.value))
-        print_tree(node.right, level + 1, counter)
-
 def code_tree(probs: list) -> Node:
 
     #Base case for function (last element must be the root)
@@ -56,10 +49,8 @@ def code_tree(probs: list) -> Node:
     #assign node.right and left
     node.right, node.left = (prob_1, prob_0)
 
-    length = len(probs)
-
     #Insert new node in the right place (descending probability)
-    if length > 0:
+    if len(probs) > 0:
         for index, item in enumerate(probs):
             if item.value[1] < node.value[1]:
                 probs.insert(index, node)
@@ -71,20 +62,6 @@ def code_tree(probs: list) -> Node:
         probs.append(node)
     
     return code_tree(probs)
-
-def print_leaves(root: Node, counter: int=0) -> int:
-
-    if not root:
-        return counter
-
-    if not root.left and not root.right:
-        print(root.value)
-    
-    if root.left:
-        counter = print_leaves(root.left, counter)
-
-    if root.right:
-        counter = print_leaves(root.right, counter)
 
 def assign_codes(node: Node, code_map: dict={}, code: str="") -> None:
     
@@ -101,7 +78,7 @@ def assign_codes(node: Node, code_map: dict={}, code: str="") -> None:
 
 def calc_avg_code_len(node: Node, code_map: dict={}, level: int=0):
     
-    if not node:
+    if not node.right and not node.left:
         return
 
     if level in code_map:
@@ -119,17 +96,19 @@ def encode_text(mapping: dict={}, coded_text: str="", counter=0) -> tuple:
     with open(os.path.join(os.sys.path[0], "Alice29.txt"), "r") as file:
         for line in file:
             for char in line:
+                counter += 1
                 if char in mapping.keys():
                     coded_text += mapping[char]
-                    counter += 1
 
     return coded_text, counter
+
 
 if __name__ == '__main__':
 
     #Open the text and calculate the probability distribution for each char
     with open(os.path.join(os.sys.path[0], "Alice29.txt"), "r") as file:
         counts = char_counter(file)
+    print(len(counts))
     
     #The root of the binary tree
     root = code_tree([Node(val) for val in list(counts.items())])
@@ -163,4 +142,4 @@ if __name__ == '__main__':
 
     average_code_len = calc_avg_code_len(root)
     print("Average code length = {}".format(average_code_len))
-    print("H < avg. code len < H + 1", average_code_len > entropy_uncoded and average_code_len < entropy_uncoded + 1)
+    print("H < avgerage code len < H + 1: ", average_code_len > entropy_uncoded and average_code_len < entropy_uncoded + 1)
