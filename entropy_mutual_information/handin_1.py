@@ -72,3 +72,6 @@ if __name__ == '__main__':
                     [1/4, 0, 1/6]])
     I4 = IT.MutualInformation(P4)
     print('I4 =',I4)
+
+    print(-1 * sum([x * math.log2(x) if x != 0 else 0 for x in [717/898, 139/898, 21/449]]))
+    print(-1 * sum([x * math.log2(x) if x != 0 else 0 for x in [15/43, 16/43, 12/43]]))

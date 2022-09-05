@@ -102,44 +102,30 @@ def encode_text(mapping: dict={}, coded_text: str="", counter=0) -> tuple:
 
     return coded_text, counter
 
+def printTree(node, level=0):
+    if node != None:
+        printTree(node.left, level + 1)
+        if not node.right and not node.left:
+            print(' ' * 4 * level + '-> ' + str(node.value[0]))
+        else:
+            print(' ' * 4 * level + '-> ' + "{:.2f}".format(node.value[1]))
+        printTree(node.right, level + 1)
+
 
 if __name__ == '__main__':
 
-    #Open the text and calculate the probability distribution for each char
-    with open(os.path.join(os.sys.path[0], "Alice29.txt"), "r") as file:
-        counts = char_counter(file)
-    print(len(counts))
-    
-    #The root of the binary tree
-    root = code_tree([Node(val) for val in list(counts.items())])
-
-    #Assign each symbol a code and store them in mapping
-    mapping = {}
-    assign_codes(root, mapping)
-
-    #Sort code mapping and counts for easy comparison (sorted by symbol)
-    sorted_map = sorted(mapping.items(), key=lambda item: item[0])
-    sorted_counts = sorted(counts.items(), key=lambda item: item[0])
-
-    #Encode the text with the generated codes
-    coded_text, uncoded_len = encode_text(mapping)
-    coded_len = len(coded_text)
-    uncoded_len *= 7 #ASCII represent each symbol with 7 bits
-
-    #Results
-    print("\nCode table & Distribution of letters: ")
-    for index, entry in enumerate(sorted_map):
-        if entry[0] == '\n':
-            print("Character: \"\\n\" probability: {: <22} {: <5} {}".format(sorted_counts[index][1], "code:", entry[1]))
-        else:
-            print("Character: \"{}\"  probability: {: <22} {: <5} {}".format(entry[0], sorted_counts[index][1], "code:", entry[1]))
-    
-    print("\nLength of the uncoded text = ", uncoded_len)
-    print("Length of the coded text = {}, compression ratio = {:.4f}".format(coded_len, uncoded_len / coded_len))
-
-    entropy_uncoded = Entropy([prob for prob in list(counts.values())])
+    exam_counts = {1: 1/40, 2: 2/10, 3: 1/20, 4: 1/40, 5: 3/10, 6: 1/40, 7: 1/20, 8: 2/10, 9: 1/10, 10: 1/40}
+    exam_counts = {k:v for k, v in sorted(exam_counts.items(), key=lambda item: item[1], reverse=True)}
+    root_exam = code_tree([Node(val) for val in list(exam_counts.items())])
+    mapping_exam = {}
+    assign_codes(root_exam, mapping_exam)
+    sorted_map_exam = sorted(mapping_exam.items(), key=lambda item: item[0])
+    sorted_exam_counts = sorted(exam_counts.items(), key=lambda item: item[0])
+    for index, entry in enumerate(sorted_map_exam):
+        print("Character: \"{}\"  probability: {: <22} {: <5} {}".format(entry[0], sorted_exam_counts[index][1], "code:", entry[1]))
+    entropy_uncoded = Entropy([prob for prob in list(exam_counts.values())])
     print("Entropy of text file = ", entropy_uncoded)
-
-    average_code_len = calc_avg_code_len(root)
+    average_code_len = calc_avg_code_len(root_exam)
     print("Average code length = {}".format(average_code_len))
     print("H < avgerage code len < H + 1: ", average_code_len > entropy_uncoded and average_code_len < entropy_uncoded + 1)
+    printTree(root_exam)
